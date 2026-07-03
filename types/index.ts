@@ -276,6 +276,41 @@ export interface Meeting {
 }
 
 // =============================================================================
+// SERVICE BOOKING TYPES
+// =============================================================================
+
+export type ServiceBookingStatus =
+  | "pending"
+  | "confirmed"
+  | "completed"
+  | "cancelled";
+
+export interface ServiceBooking {
+  _id: ObjectId;
+  ticketId: string; // Ticket ObjectId as string
+  customerName: string;
+  phone: string;
+  address: string;
+  serviceType: string; // Free text — not a hardcoded enum, so new service types don't need a code change
+  scheduledAt: Date; // Technician visit date and time
+  status: ServiceBookingStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string; // User ID (admin/support) who created the booking
+  confirmedAt?: Date;
+  completedAt?: Date;
+  cancelledAt?: Date;
+}
+
+export interface ServiceBookingFormData {
+  customerName: string;
+  phone: string;
+  address: string;
+  serviceType: string;
+  scheduledAt: Date;
+}
+
+// =============================================================================
 // TICKET HISTORY TYPES
 // =============================================================================
 

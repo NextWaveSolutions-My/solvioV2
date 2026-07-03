@@ -369,6 +369,54 @@ export const updateMeetingSchema = z.object({
 });
 
 // =============================================================================
+// SERVICE BOOKING VALIDATIONS
+// =============================================================================
+
+export const createServiceBookingSchema = z.object({
+  customerName: z
+    .string()
+    .min(1, "Customer name is required")
+    .max(200, "Customer name must not exceed 200 characters"),
+  phone: z
+    .string()
+    .min(1, "Phone number is required")
+    .max(40, "Phone number must not exceed 40 characters"),
+  address: z
+    .string()
+    .min(1, "Address is required")
+    .max(500, "Address must not exceed 500 characters"),
+  serviceType: z
+    .string()
+    .min(1, "Service type is required")
+    .max(120, "Service type must not exceed 120 characters"),
+  scheduledAt: z.coerce.date(),
+});
+
+export const updateServiceBookingSchema = z.object({
+  customerName: z
+    .string()
+    .min(1, "Customer name is required")
+    .max(200, "Customer name must not exceed 200 characters")
+    .optional(),
+  phone: z
+    .string()
+    .min(1, "Phone number is required")
+    .max(40, "Phone number must not exceed 40 characters")
+    .optional(),
+  address: z
+    .string()
+    .min(1, "Address is required")
+    .max(500, "Address must not exceed 500 characters")
+    .optional(),
+  serviceType: z
+    .string()
+    .min(1, "Service type is required")
+    .max(120, "Service type must not exceed 120 characters")
+    .optional(),
+  scheduledAt: z.coerce.date().optional(),
+});
+
+// =============================================================================
 // FILTER VALIDATIONS
 // =============================================================================
 

@@ -16,6 +16,7 @@ import { getTicketHistory } from "@/actions/admin";
 import { isFileUploadsEnabled } from "@/lib/storage";
 import { getTicketComments } from "@/actions/comments";
 import { getTicketMeetings } from "@/actions/meetings";
+import { getTicketBookings } from "@/actions/service-bookings";
 import { getTicketAttachments } from "@/actions/attachments";
 import { CommentSection } from "@/components/tickets/comment-section";
 import { TicketAssignment } from "@/components/admin/ticket-assignment";
@@ -25,6 +26,8 @@ import { TicketPriorityControl } from "@/components/admin/ticket-priority-contro
 import { RequestHistory } from "@/components/admin/request-history";
 import { MeetingScheduler } from "@/components/meetings/meeting-scheduler";
 import { MeetingList } from "@/components/meetings/meeting-list";
+import { BookingFormDialog } from "@/components/bookings/booking-form-dialog";
+import { BookingList } from "@/components/bookings/booking-list";
 import { TicketDescription } from "@/components/tickets/ticket-description";
 import { NameWithRole } from "@/components/shared/name-with-role";
 import { ArrowLeft } from "lucide-react";
@@ -66,6 +69,10 @@ export default async function AdminTicketDetailPage({
   // Get meetings
   const meetingsResult = await getTicketMeetings(id);
   const meetings = meetingsResult.success ? meetingsResult.data || [] : [];
+
+  // Get service bookings
+  const bookingsResult = await getTicketBookings(id);
+  const bookings = bookingsResult.success ? bookingsResult.data || [] : [];
 
   // Get user information
   const usersCollection = await getCollection<UserType>("user");
@@ -299,6 +306,15 @@ export default async function AdminTicketDetailPage({
                   {history?.length ?? 0}
                 </span>
               </TabsTrigger>
+              <TabsTrigger
+                value="bookings"
+                className="flex-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none rounded-none bg-transparent border-0 text-muted-foreground hover:text-foreground px-4 pb-3 -mb-px font-medium transition-colors"
+              >
+                Booking
+                <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-[11px] text-muted-foreground">
+                  {bookings?.length ?? 0}
+                </span>
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="comments" className="mt-0">
@@ -335,6 +351,21 @@ export default async function AdminTicketDetailPage({
 
             <TabsContent value="history" className="mt-0">
               <RequestHistory history={history} />
+            </TabsContent>
+
+            <TabsContent value="bookings" className="mt-0">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-2 rounded-lg border bg-card p-3">
+                  <p className="text-sm text-muted-foreground">
+                    Schedule a technician visit for this service ticket.
+                  </p>
+                  <BookingFormDialog
+                    ticketId={id}
+                    defaultCustomerName={customer?.name}
+                  />
+                </div>
+                <BookingList bookings={bookings} />
+              </div>
             </TabsContent>
           </Tabs>
         </div>

@@ -21,6 +21,16 @@ export type ConversationTag = {
   created_by: string;
 };
 
+// Saved tag presets that staff can pick from instead of retyping a label
+// and color every time. Stored in the `conversation_tag_presets` collection.
+export type ConversationTagPreset = {
+  id: string;
+  label: string;
+  color: ConversationTagColor;
+  createdBy: string;
+  createdAt: string;
+};
+
 export type UserSummary = {
   id: string;
   name: string;

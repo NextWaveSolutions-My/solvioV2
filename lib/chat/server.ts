@@ -6,6 +6,8 @@ import type {
   ConversationMessageSummary,
   ConversationParticipantWithUser,
   ConversationTag,
+  ConversationTagColor,
+  ConversationTagPreset,
   ConversationType,
   ConversationWithParticipants,
   Message,
@@ -47,6 +49,15 @@ type MessageDocument = {
   editHistory: MessageEditHistory[];
   createdAt: Date;
   updatedAt: Date;
+};
+
+type ConversationTagPresetDocument = {
+  _id: ObjectId;
+  id: string;
+  label: string;
+  color: ConversationTagColor;
+  createdBy: string;
+  createdAt: Date;
 };
 
 type CreateConversationInput = {
@@ -522,4 +533,79 @@ export async function removeConversationTagFromDocument(
   );
 
   return getConversationDocument(conversationId);
+}
+
+// ---------------------------------------------------------------------------
+// Conversation tag presets (saved labels staff can pick from instead of
+// retyping a label and color every time)
+// ---------------------------------------------------------------------------
+
+function serializeTagPreset(
+  doc: ConversationTagPresetDocument
+): ConversationTagPreset {
+  return {
+    id: doc.id,
+    label: doc.label,
+    color: doc.color,
+    createdBy: doc.createdBy,
+    createdAt: toIsoString(doc.createdAt) as string,
+  };
+}
+
+export async function getConversationTagPresetDocuments(): Promise<
+  ConversationTagPreset[]
+> {
+  const collection = await getCollection<ConversationTagPresetDocument>(
+    "conversation_tag_presets"
+  );
+
+  const presets = await collection.find({}).sort({ label: 1 }).toArray();
+  return presets.map(serializeTagPreset);
+}
+
+export async function createConversationTagPresetDocument(input: {
+  id: string;
+  label: string;
+  color: ConversationTagColor;
+  createdBy: string;
+}): Promise<ConversationTagPreset> {
+  const collection = await getCollection<ConversationTagPresetDocument>(
+    "conversation_tag_presets"
+  );
+
+  const doc = {
+    id: input.id,
+    label: input.label,
+    color: input.color,
+    createdBy: input.createdBy,
+    createdAt: new Date(),
+  };
+
+  await collection.insertOne(doc as ConversationTagPresetDocument);
+
+  return serializeTagPreset(doc as ConversationTagPresetDocument);
+}
+
+export async function findConversationTagPresetByLabel(
+  label: string
+): Promise<ConversationTagPreset | null> {
+  const collection = await getCollection<ConversationTagPresetDocument>(
+    "conversation_tag_presets"
+  );
+
+  const doc = await collection.findOne({
+    label: { $regex: `^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" },
+  });
+
+  return doc ? serializeTagPreset(doc) : null;
+}
+
+export async function deleteConversationTagPresetDocument(
+  id: string
+): Promise<void> {
+  const collection = await getCollection<ConversationTagPresetDocument>(
+    "conversation_tag_presets"
+  );
+
+  await collection.deleteOne({ id });
 }

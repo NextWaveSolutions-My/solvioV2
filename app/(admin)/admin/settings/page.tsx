@@ -9,6 +9,7 @@ import {
   Briefcase,
   Megaphone,
   KeyRound,
+  Tags,
 } from "lucide-react";
 import {
   Card,
@@ -32,6 +33,7 @@ import { ServicesSettingsForm } from "@/components/settings/services-settings-fo
 import { AppearanceSettingsForm } from "@/components/settings/appearance-settings-form";
 import { FileUploadSettingsForm } from "@/components/settings/file-upload-settings-form";
 import { IntegrationSettingsForm } from "@/components/settings/integration-settings-form";
+import { ConversationTagPresetsSettingsForm } from "@/components/settings/conversation-tag-presets-settings-form";
 
 // Force dynamic rendering for authenticated routes
 export const dynamic = "force-dynamic";
@@ -142,6 +144,13 @@ export default async function SettingsPage() {
             <KeyRound className="h-4 w-4 text-violet-500" />
             <span className="hidden sm:inline">Access</span>
           </TabsTrigger>
+          <TabsTrigger
+            value="tags"
+            className="gap-2 rounded-md px-4 py-2.5 text-sm font-medium data-[state=active]:bg-[color-mix(in_oklab,var(--primary)_10%,white)]! data-[state=active]:font-semibold data-[state=active]:text-primary data-[state=active]:shadow-none dark:data-[state=active]:bg-primary/20! dark:data-[state=active]:text-primary-foreground dark:data-[state=active]:border-transparent"
+          >
+            <Tags className="h-4 w-4 text-rose-500" />
+            <span className="hidden sm:inline">Tags</span>
+          </TabsTrigger>
         </TabsList>
 
         {/* General Settings */}
@@ -208,6 +217,12 @@ export default async function SettingsPage() {
         <TabsContent value="access">
           <Suspense fallback={<SettingsSkeleton />}>
             <AccessSettingsForm />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="tags">
+          <Suspense fallback={<SettingsSkeleton />}>
+            <ConversationTagPresetsSettingsForm />
           </Suspense>
         </TabsContent>
       </Tabs>
