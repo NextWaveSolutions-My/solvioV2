@@ -264,6 +264,7 @@ export function MessagesClient({
           <div className="flex-1 overflow-y-auto px-2 pb-2">
             <ConversationList
               userId={userId}
+              userRole={userRole}
               conversations={conversations}
               loading={conversationsLoading}
               onSelectConversation={(id) => {
@@ -348,6 +349,7 @@ export function MessagesClient({
                 <MessageThread
                   conversationId={selectedConversationId}
                   userId={userId}
+                  userRole={userRole}
                   participants={selectedConversation?.participants}
                   onReplyToMessage={setReplyToMessage}
                 />

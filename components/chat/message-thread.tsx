@@ -18,13 +18,20 @@ import { MessageReactions } from "@/components/messages/message-reactions";
 import { MessageAttachments } from "@/components/messages/message-attachments";
 import { MessageEditDialog } from "@/components/messages/message-edit-dialog";
 import { deleteMessage } from "@/actions/message-editing";
-import { MoreVertical, Edit, Trash2, Reply } from "lucide-react";
+import { MoreVertical, Edit, Trash2, Reply, Ticket as TicketIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import { CreateTicketFromMessageDialog } from "@/components/chat/create-ticket-from-message-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -78,6 +85,7 @@ function RichContent({ text }: { text: string }) {
 interface MessageThreadProps {
   conversationId: string;
   userId: string;
+  userRole?: string;
   participants?: ConversationParticipantWithUser[];
   onReplyToMessage?: (message: Message) => void;
 }
@@ -85,6 +93,7 @@ interface MessageThreadProps {
 export function MessageThread({
   conversationId,
   userId,
+  userRole,
   participants,
   onReplyToMessage,
 }: MessageThreadProps) {
@@ -100,6 +109,16 @@ export function MessageThread({
     string | null
   >(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [ticketMessage, setTicketMessage] = useState<Message | null>(null);
+  const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
+
+  const canCreateTickets = userRole === "admin" || userRole === "support";
+  // The conversation's customer — tickets are always filed against the
+  // customer regardless of which message (theirs or the agent's) was
+  // right-clicked.
+  const customerParticipant = participants?.find(
+    (p) => p.user_role === "customer"
+  );
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -135,6 +154,11 @@ export function MessageThread({
       toast.error(result.error || "Failed to delete message");
     }
     setIsDeleting(false);
+  };
+
+  const handleCreateTicketFromMessage = (message: Message) => {
+    setTicketMessage(message);
+    setTicketDialogOpen(true);
   };
 
   if (loading) {
@@ -221,43 +245,105 @@ export function MessageThread({
               )}
             >
               <div className="relative group/message">
-                <div
-                  className={cn(
-                    "rounded-2xl px-3.5 py-2 wrap-break-word shadow-sm",
-                    isOwnMessage
-                      ? "bg-blue-600 text-white rounded-br-md"
-                      : "bg-card border border-border/50 rounded-bl-md",
-                    message.is_deleted && "opacity-60"
-                  )}
-                >
-                  {!message.is_deleted && repliedToMessage && (
-                    <div className="mb-1.5 px-2.5 py-1.5 rounded-lg text-xs bg-background/40 border-l-2 border-border/70">
-                      <p className="font-medium text-[10px] text-muted-foreground line-clamp-1">
-                        {repliedToMessage.sender_name || "User"}
-                      </p>
-                      <p className="line-clamp-2 text-[11px] text-muted-foreground/80">
-                        {repliedToMessage.content || "[Attachment]"}
-                      </p>
-                    </div>
-                  )}
+                {canCreateTickets ? (
+                  <ContextMenu>
+                    <ContextMenuTrigger asChild>
+                      <div
+                        className={cn(
+                          "rounded-2xl px-3.5 py-2 wrap-break-word shadow-sm",
+                          isOwnMessage
+                            ? "bg-blue-600 text-white rounded-br-md"
+                            : "bg-card border border-border/50 rounded-bl-md",
+                          message.is_deleted && "opacity-60"
+                        )}
+                      >
+                        {!message.is_deleted && repliedToMessage && (
+                          <div className="mb-1.5 px-2.5 py-1.5 rounded-lg text-xs bg-background/40 border-l-2 border-border/70">
+                            <p className="font-medium text-[10px] text-muted-foreground line-clamp-1">
+                              {repliedToMessage.sender_name || "User"}
+                            </p>
+                            <p className="line-clamp-2 text-[11px] text-muted-foreground/80">
+                              {repliedToMessage.content || "[Attachment]"}
+                            </p>
+                          </div>
+                        )}
 
-                  {message.is_deleted ? (
-                    <p className="italic text-xs">[Message deleted]</p>
-                  ) : (
-                    <>
-                      {message.content && (
-                        <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                          <RichContent text={message.content} />
+                        {message.is_deleted ? (
+                          <p className="italic text-xs">[Message deleted]</p>
+                        ) : (
+                          <>
+                            {message.content && (
+                              <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                                <RichContent text={message.content} />
+                              </p>
+                            )}
+                            {message.is_edited && (
+                              <span className="text-[10px] opacity-60 ml-1">
+                                (edited)
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </ContextMenuTrigger>
+                    {!message.is_deleted && (
+                      <ContextMenuContent>
+                        {onReplyToMessage && (
+                          <ContextMenuItem
+                            onSelect={() => onReplyToMessage(message)}
+                          >
+                            <Reply className="h-4 w-4 mr-2" />
+                            Reply
+                          </ContextMenuItem>
+                        )}
+                        <ContextMenuItem
+                          onSelect={() => handleCreateTicketFromMessage(message)}
+                        >
+                          <TicketIcon className="h-4 w-4 mr-2" />
+                          Create ticket
+                        </ContextMenuItem>
+                      </ContextMenuContent>
+                    )}
+                  </ContextMenu>
+                ) : (
+                  <div
+                    className={cn(
+                      "rounded-2xl px-3.5 py-2 wrap-break-word shadow-sm",
+                      isOwnMessage
+                        ? "bg-blue-600 text-white rounded-br-md"
+                        : "bg-card border border-border/50 rounded-bl-md",
+                      message.is_deleted && "opacity-60"
+                    )}
+                  >
+                    {!message.is_deleted && repliedToMessage && (
+                      <div className="mb-1.5 px-2.5 py-1.5 rounded-lg text-xs bg-background/40 border-l-2 border-border/70">
+                        <p className="font-medium text-[10px] text-muted-foreground line-clamp-1">
+                          {repliedToMessage.sender_name || "User"}
                         </p>
-                      )}
-                      {message.is_edited && (
-                        <span className="text-[10px] opacity-60 ml-1">
-                          (edited)
-                        </span>
-                      )}
-                    </>
-                  )}
-                </div>
+                        <p className="line-clamp-2 text-[11px] text-muted-foreground/80">
+                          {repliedToMessage.content || "[Attachment]"}
+                        </p>
+                      </div>
+                    )}
+
+                    {message.is_deleted ? (
+                      <p className="italic text-xs">[Message deleted]</p>
+                    ) : (
+                      <>
+                        {message.content && (
+                          <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                            <RichContent text={message.content} />
+                          </p>
+                        )}
+                        {message.is_edited && (
+                          <span className="text-[10px] opacity-60 ml-1">
+                            (edited)
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
 
                 {/* Message actions: reactions, reply, more */}
                 {!message.is_deleted && (
@@ -381,6 +467,20 @@ export function MessageThread({
           open={!!editingMessage}
           onOpenChange={(open) => !open && setEditingMessage(null)}
           onSuccess={() => setEditingMessage(null)}
+        />
+      )}
+
+      {/* Create Ticket From Message Dialog */}
+      {canCreateTickets && (
+        <CreateTicketFromMessageDialog
+          open={ticketDialogOpen}
+          onOpenChange={(open) => {
+            setTicketDialogOpen(open);
+            if (!open) setTicketMessage(null);
+          }}
+          message={ticketMessage}
+          customerId={customerParticipant?.user_id || null}
+          customerName={customerParticipant?.user_name}
         />
       )}
 

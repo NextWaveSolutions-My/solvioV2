@@ -5,6 +5,7 @@ import type { User } from "@/types";
 import type {
   ConversationMessageSummary,
   ConversationParticipantWithUser,
+  ConversationTag,
   ConversationType,
   ConversationWithParticipants,
   Message,
@@ -24,6 +25,7 @@ type ConversationDocument = {
   updatedAt: Date;
   lastMessageAt: Date | null;
   lastMessage: ConversationMessageSummary | null;
+  tags?: ConversationTag[];
 };
 
 type MessageDocument = {
@@ -161,6 +163,7 @@ function serializeConversation(
       : null,
     participants,
     unreadCount,
+    tags: conversation.tags || [],
   };
 }
 
@@ -372,13 +375,20 @@ export async function getConversationSummariesForUser(userId: string) {
     unreadCounts.map((item) => [item._id, item.count] as const)
   );
 
-  return conversations.map((conversation) =>
-    serializeConversation(
+  // Tags are an internal triage tool for staff (support/admin). Customers
+  // viewing their own conversation shouldn't see internal labels like
+  // "URGENT" or "VIP" attached to their chat.
+  const viewerRole = usersMap.get(userId)?.role || "customer";
+  const viewerIsStaff = viewerRole === "admin" || viewerRole === "support";
+
+  return conversations.map((conversation) => {
+    const summary = serializeConversation(
       conversation,
       serializeConversationParticipants(conversation, usersMap),
       unreadMap.get(conversation.id) || 0
-    )
-  );
+    );
+    return viewerIsStaff ? summary : { ...summary, tags: [] };
+  });
 }
 
 export async function getConversationSummaryForUser(
@@ -472,4 +482,44 @@ export async function replaceMessageDocument(message: MessageDocument) {
 export async function serializeUsersByIds(userIds: string[]) {
   const usersMap = await getUsersMap(userIds);
   return Object.fromEntries(usersMap.entries());
+}
+
+// ---------------------------------------------------------------------------
+// Conversation tags (color-coded labels like "URGENT", "VIP", "Follow up")
+// ---------------------------------------------------------------------------
+
+export async function addConversationTagToDocument(
+  conversationId: string,
+  tag: ConversationTag
+) {
+  const conversationsCollection =
+    await getCollection<ConversationDocument>("conversations");
+
+  await conversationsCollection.updateOne(
+    { id: conversationId },
+    {
+      $push: { tags: tag },
+      $set: { updatedAt: new Date() },
+    }
+  );
+
+  return getConversationDocument(conversationId);
+}
+
+export async function removeConversationTagFromDocument(
+  conversationId: string,
+  tagId: string
+) {
+  const conversationsCollection =
+    await getCollection<ConversationDocument>("conversations");
+
+  await conversationsCollection.updateOne(
+    { id: conversationId },
+    {
+      $pull: { tags: { id: tagId } },
+      $set: { updatedAt: new Date() },
+    }
+  );
+
+  return getConversationDocument(conversationId);
 }

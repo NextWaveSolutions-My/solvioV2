@@ -17,11 +17,14 @@ import { NameWithRole } from "@/components/shared/name-with-role";
 import { useUserPresence } from "@/hooks/useUserPresence";
 import type { ConversationWithParticipants } from "@/hooks/useRealtimeConversations";
 import { Search, Users } from "lucide-react";
+import { ConversationTagBadge } from "@/components/chat/conversation-tag-badge";
+import { ConversationTagPicker } from "@/components/chat/conversation-tag-picker";
 
 type FilterTab = "all" | "unread" | "groups";
 
 interface ConversationListProps {
   userId: string;
+  userRole?: string;
   conversations: ConversationWithParticipants[];
   loading?: boolean;
   onSelectConversation: (conversationId: string) => void;
@@ -30,6 +33,7 @@ interface ConversationListProps {
 
 export function ConversationList({
   userId,
+  userRole,
   conversations,
   loading = false,
   onSelectConversation,
@@ -38,6 +42,7 @@ export function ConversationList({
   const { isUserOnline } = useUserPresence(userId);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
+  const canManageTags = userRole === "admin" || userRole === "support";
 
   // Filter conversations based on search query and active tab
   const filteredConversations = useMemo(() => {
@@ -167,7 +172,7 @@ export function ConversationList({
             <div
               key={conversation.id}
               className={cn(
-                "flex items-center gap-3 px-2 py-2 rounded-lg cursor-pointer transition-all",
+                "group/row flex items-center gap-3 px-2 py-2 rounded-lg cursor-pointer transition-all",
                 selectedConversationId === conversation.id
                   ? "bg-blue-50 dark:bg-blue-950/30"
                   : "hover:bg-accent/50"
@@ -259,7 +264,33 @@ export function ConversationList({
                     </span>
                   )}
                 </div>
+
+                {/* Labels (color-coded tags) */}
+                {(conversation.tags && conversation.tags.length > 0) && (
+                  <div className="flex flex-wrap items-center gap-1 mt-1">
+                    {conversation.tags.map((tag) => (
+                      <ConversationTagBadge key={tag.id} tag={tag} />
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {/* Tag picker trigger - visible on hover, or always if tags exist. Staff only. */}
+              {canManageTags && (
+                <div
+                  className={cn(
+                    "shrink-0 transition-opacity",
+                    conversation.tags && conversation.tags.length > 0
+                      ? "opacity-100"
+                      : "opacity-0 group-hover/row:opacity-100"
+                  )}
+                >
+                  <ConversationTagPicker
+                    conversationId={conversation.id}
+                    tags={conversation.tags || []}
+                  />
+                </div>
+              )}
 
               {/* Unread indicator dot */}
               {hasUnread && (

@@ -1,5 +1,26 @@
 export type ConversationType = "direct" | "group";
 
+// Fixed color palette so tags always render consistently and stay
+// accessible in both light/dark mode. Extend this list (and the matching
+// map in conversation-tag-badge.tsx) if more colors are needed.
+export type ConversationTagColor =
+  | "red"
+  | "orange"
+  | "yellow"
+  | "green"
+  | "blue"
+  | "purple"
+  | "pink"
+  | "gray";
+
+export type ConversationTag = {
+  id: string;
+  label: string;
+  color: ConversationTagColor;
+  created_at: string;
+  created_by: string;
+};
+
 export type UserSummary = {
   id: string;
   name: string;
@@ -36,6 +57,7 @@ export type Conversation = {
   updated_at: string;
   last_message_at: string | null;
   lastMessage?: ConversationMessageSummary | null;
+  tags: ConversationTag[];
 };
 
 export type ConversationWithParticipants = Conversation & {
