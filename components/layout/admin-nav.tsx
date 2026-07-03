@@ -21,6 +21,7 @@ import {
   Mail,
   BookOpen,
   Sparkles,
+  CalendarClock,
 } from "lucide-react";
 import {
   Collapsible,
@@ -138,6 +139,12 @@ export function AdminNav({ userRole, services }: AdminNavProps) {
           icon: FileText,
           roles: ["admin", "support"],
           collapsedLabel: "Tickets",
+        },
+        {
+          name: "Schedule",
+          href: "/admin/schedule",
+          icon: CalendarClock,
+          roles: ["admin", "support"],
         },
         {
           name: "Messages",

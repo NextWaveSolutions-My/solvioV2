@@ -35,7 +35,7 @@ async function requireStaff() {
   });
 }
 
-type SerializedServiceBooking = Omit<
+export type SerializedServiceBooking = Omit<
   ServiceBooking,
   "_id" | "scheduledAt" | "createdAt" | "updatedAt" | "confirmedAt" | "completedAt" | "cancelledAt"
 > & {
@@ -76,6 +76,7 @@ async function revalidateTicketPaths(ticketId: string) {
   } catch (error) {
     console.error("Failed to revalidate ticket paths for booking:", error);
   }
+  revalidatePath("/admin/schedule");
 }
 
 async function sendBookingConfirmationWhatsApp(booking: ServiceBooking) {
@@ -168,6 +169,58 @@ export async function getTicketBookings(
     };
   } catch (error) {
     console.error("Error fetching service bookings:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch bookings",
+    };
+  }
+}
+
+/**
+ * Get all bookings across all tickets, optionally filtered by status,
+ * a scheduledAt date range, and a text search. Powers the admin Schedule page.
+ */
+export async function getAllServiceBookings(filters?: {
+  status?: ServiceBooking["status"];
+  search?: string;
+  from?: Date;
+  to?: Date;
+}): Promise<ApiResponse<SerializedServiceBooking[]>> {
+  try {
+    await requireStaff();
+
+    const collection = await getCollection<ServiceBooking>("service_bookings");
+    const query: Record<string, unknown> = {};
+
+    if (filters?.status) {
+      query.status = filters.status;
+    }
+    if (filters?.from || filters?.to) {
+      const scheduledAt: Record<string, Date> = {};
+      if (filters.from) scheduledAt.$gte = filters.from;
+      if (filters.to) scheduledAt.$lte = filters.to;
+      query.scheduledAt = scheduledAt;
+    }
+    if (filters?.search) {
+      query.$or = [
+        { customerName: { $regex: filters.search, $options: "i" } },
+        { phone: { $regex: filters.search, $options: "i" } },
+        { address: { $regex: filters.search, $options: "i" } },
+        { serviceType: { $regex: filters.search, $options: "i" } },
+      ];
+    }
+
+    const bookings = await collection
+      .find(query)
+      .sort({ scheduledAt: 1 })
+      .toArray();
+
+    return {
+      success: true,
+      data: bookings.map(serializeBooking),
+    };
+  } catch (error) {
+    console.error("Error fetching all service bookings:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to fetch bookings",
