@@ -9,6 +9,8 @@ const client = new MongoClient(uri, { retryWrites: false });
 const db = client.db(process.env.DATABASE_NAME || "support-app");
 
 export const auth = betterAuth({
+  baseURL: process.env.BETTER_AUTH_URL,
+  trustedOrigins: [process.env.BETTER_AUTH_URL!].filter(Boolean),
   database: mongodbAdapter(db),
 
   emailAndPassword: {
