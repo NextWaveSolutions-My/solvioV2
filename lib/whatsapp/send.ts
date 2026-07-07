@@ -10,16 +10,36 @@
 
 const WAHA_BRIDGE_WEBHOOK_URL = "http://localhost:5678/webhook/solvio-to-waha";
 
+/**
+ * POSTs to an n8n/WAHA bridge webhook and throws if it didn't actually
+ * succeed. fetch() only rejects on network failures, not HTTP error
+ * statuses, so callers that skip the .ok check see a resolved promise
+ * even when n8n/WAHA rejected the send (bad session, bad chatId, etc.).
+ */
+export async function postToWahaBridge(
+  url: string,
+  payload: Record<string, unknown>
+): Promise<void> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(
+      `WhatsApp bridge responded ${response.status} ${response.statusText}: ${body}`
+    );
+  }
+}
+
 export async function sendWhatsAppMessage(
   phone: string,
   message: string
 ): Promise<void> {
   try {
-    await fetch(WAHA_BRIDGE_WEBHOOK_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, message }),
-    });
+    await postToWahaBridge(WAHA_BRIDGE_WEBHOOK_URL, { phone, message });
   } catch (err) {
     console.error("Failed to notify WhatsApp bridge:", err);
   }

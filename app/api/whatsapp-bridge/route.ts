@@ -9,14 +9,20 @@ import {
   emitMessageCreated,
   emitConversationSummaryToParticipants,
 } from "@/lib/socket/server";
+import { hasValidInternalApiKey } from "@/lib/internal-api-auth";
 
 const ADMIN_USER_ID = "6a3a3fa96ad62b76f6364720";
 const BRIDGE_SECRET = process.env.WHATSAPP_BRIDGE_SECRET || "";
 
 export async function POST(req: NextRequest) {
-  // Simple shared-secret check so this endpoint isn't wide open
-  const authHeader = req.headers.get("x-bridge-secret");
-  if (!BRIDGE_SECRET || authHeader !== BRIDGE_SECRET) {
+  // Accept either the legacy bridge secret or the shared internal API key,
+  // so existing n8n workflows keep working while new ones can move to the
+  // unified key.
+  const bridgeSecretHeader = req.headers.get("x-bridge-secret");
+  const bridgeSecretValid =
+    Boolean(BRIDGE_SECRET) && bridgeSecretHeader === BRIDGE_SECRET;
+
+  if (!bridgeSecretValid && !hasValidInternalApiKey(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

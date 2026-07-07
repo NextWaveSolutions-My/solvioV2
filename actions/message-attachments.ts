@@ -17,6 +17,7 @@ import { getCollection } from "@/lib/db";
 import { ObjectId } from "mongodb";
 import { emitConversationSummaryToParticipants, emitMessageUpdated } from "@/lib/socket/server";
 import { deleteFile, uploadFile } from "@/lib/storage";
+import { postToWahaBridge } from "@/lib/whatsapp/send";
 import type { MessageAttachment } from "@/types/realtime";
 
 type MessageDocument = {
@@ -130,15 +131,11 @@ export async function uploadMessageAttachment(
         });
         if (waUser && session.user.id !== waUser._id.toString()) {
           const phone = waUser.email.split("@")[0];
-          fetch("http://localhost:5678/webhook/solvio-attachment-to-waha", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              phone,
-              fileUrl: uploadedFile.url,
-              mimeType: uploadedFile.mimeType,
-              fileName: uploadedFile.filename,
-            }),
+          postToWahaBridge("http://localhost:5678/webhook/solvio-attachment-to-waha", {
+            phone,
+            fileUrl: uploadedFile.url,
+            mimeType: uploadedFile.mimeType,
+            fileName: uploadedFile.filename,
           }).catch((err) =>
             console.error("Failed to notify WhatsApp bridge (attachment):", err)
           );

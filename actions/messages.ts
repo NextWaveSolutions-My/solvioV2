@@ -23,6 +23,7 @@ import {
   emitMessagesRead,
 } from "@/lib/socket/server";
 import { createBulkNotifications } from "@/lib/notifications";
+import { postToWahaBridge } from "@/lib/whatsapp/send";
 import { notifyAdminsTelegram, toPlainPreview } from "@/lib/telegram/server";
 import type { User, UserRole } from "@/types";
 import { revalidatePath } from "next/cache";
@@ -168,10 +169,9 @@ export async function sendMessage(data: {
 
       if (waUser && session.user.id !== waUser._id.toString()) {
         const phone = waUser.email.split("@")[0];
-        fetch("http://localhost:5678/webhook/solvio-to-waha", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone, message: data.content }),
+        postToWahaBridge("http://localhost:5678/webhook/solvio-to-waha", {
+          phone,
+          message: data.content,
         }).catch((err) =>
           console.error("Failed to notify WhatsApp bridge:", err)
         );
