@@ -1,11 +1,11 @@
 import { timingSafeEqual } from "crypto";
 import type { NextRequest } from "next/server";
 
-const INTERNAL_API_KEY = process.env.SOLVIO_INTERNAL_API_KEY || "";
+const INTERNAL_API_KEY = process.env.NEXTWAVECHATBOT_INTERNAL_API_KEY || "";
 
 /**
  * Constant-time check of the x-internal-api-key header against
- * SOLVIO_INTERNAL_API_KEY, for trusted machine-to-machine callers (e.g. n8n).
+ * NEXTWAVECHATBOT_INTERNAL_API_KEY, for trusted machine-to-machine callers (e.g. n8n).
  */
 export function hasValidInternalApiKey(req: NextRequest): boolean {
   const provided = req.headers.get("x-internal-api-key") || "";
